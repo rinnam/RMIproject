@@ -5,6 +5,7 @@ import java.rmi.RemoteException;
 
 public interface BankService extends Remote {
 	boolean login(String accountId, String password) throws RemoteException;
+	boolean registerAccount(String accountId, String password) throws RemoteException;
 	long getBalance(String accountId) throws RemoteException;
 	long deposit(String accountId, long amount) throws RemoteException;
 	long withdraw(String accountId, long amount) throws RemoteException;

@@ -27,16 +27,31 @@ public class BankServiceImpl extends UnicastRemoteObject implements BankService 
 	}
 
 	@Override
+	public synchronized boolean registerAccount(String accountId, String password) throws RemoteException {
+		if (accountId == null || accountId.trim().isEmpty()) {
+			throw new RemoteException("Tên tài khoảng không được trống");
+		}
+		if (password == null || password.trim().isEmpty()) {
+			throw new RemoteException("Mật khẩu trống");
+		}
+		try {
+			return accountStore.createAccount(accountId.trim(), password);
+		} catch (IOException e) {
+			throw new RemoteException("I/O error", e);
+		}
+	}
+
+	@Override
 	public synchronized long getBalance(String accountId) throws RemoteException {
-		if (!accountStore.hasAccount(accountId)) throw new RemoteException("Account not found");
+		if (!accountStore.hasAccount(accountId)) throw new RemoteException("Không tìm thấy tài khoản");
 		return accountStore.getBalance(accountId);
 	}
 
 	@Override
 	public synchronized long deposit(String accountId, long amount) throws RemoteException {
-		if (amount <= 0) throw new RemoteException("Amount must be positive");
+		if (amount <= 0) throw new RemoteException("Phải nhập số dương");
 		try {
-			if (!accountStore.hasAccount(accountId)) throw new RemoteException("Account not found");
+			if (!accountStore.hasAccount(accountId)) throw new RemoteException("Không tìm thấy tài khoản");
 			accountStore.addBalance(accountId, amount);
 			return accountStore.getBalance(accountId);
 		} catch (IOException e) {
@@ -46,10 +61,10 @@ public class BankServiceImpl extends UnicastRemoteObject implements BankService 
 
 	@Override
 	public synchronized long withdraw(String accountId, long amount) throws RemoteException {
-		if (amount <= 0) throw new RemoteException("Amount must be positive");
-		if (!accountStore.hasAccount(accountId)) throw new RemoteException("Account not found");
+		if (amount <= 0) throw new RemoteException("Phải nhập số dương");
+		if (!accountStore.hasAccount(accountId)) throw new RemoteException("Không tìm thấy tài khoản");
 		long balance = accountStore.getBalance(accountId);
-		if (balance < amount) throw new RemoteException("Insufficient funds");
+		if (balance < amount) throw new RemoteException("Số dư không đủ");
 		try {
 			accountStore.addBalance(accountId, -amount);
 			return accountStore.getBalance(accountId);
@@ -60,12 +75,12 @@ public class BankServiceImpl extends UnicastRemoteObject implements BankService 
 
 	@Override
 	public synchronized void transfer(String fromAccountId, String toAccountId, long amount, String message) throws RemoteException {
-		if (amount <= 0) throw new RemoteException("Amount must be positive");
-		if (fromAccountId.equals(toAccountId)) throw new RemoteException("Cannot transfer to same account");
-		if (!accountStore.hasAccount(fromAccountId)) throw new RemoteException("Source account not found");
-		if (!accountStore.hasAccount(toAccountId)) throw new RemoteException("Destination account not found");
+		if (amount <= 0) throw new RemoteException("Phải nhập số dương");
+		if (fromAccountId.equals(toAccountId)) throw new RemoteException("Không thể chuyển tiền cho chính mình");
+		if (!accountStore.hasAccount(fromAccountId)) throw new RemoteException("Không tìm thấy tài khoản gởi");
+		if (!accountStore.hasAccount(toAccountId)) throw new RemoteException("Không tìm thấy tài khoản nhận");
 		long fromBal = accountStore.getBalance(fromAccountId);
-		if (fromBal < amount) throw new RemoteException("Insufficient funds");
+		if (fromBal < amount) throw new RemoteException("Số dư không đủ");
 		try {
 			accountStore.addBalance(fromAccountId, -amount);
 			accountStore.addBalance(toAccountId, amount);

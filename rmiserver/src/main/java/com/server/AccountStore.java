@@ -45,6 +45,16 @@ class AccountStore {
 		return pw != null && pw.equals(password);
 	}
 
+	synchronized boolean createAccount(String accountId, String password) throws IOException {
+		if (accountIdToBalance.containsKey(accountId)) {
+			return false; // Account already exists
+		}
+		accountIdToPassword.put(accountId, password);
+		accountIdToBalance.put(accountId, 0L); // Start with balance 0
+		save();
+		return true;
+	}
+
 	private void load() throws IOException {
 		if (!dataFile.exists()) {
 			dataFile.getParentFile().mkdirs();

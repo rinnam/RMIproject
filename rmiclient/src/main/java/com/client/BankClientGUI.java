@@ -57,8 +57,10 @@ public class BankClientGUI extends JFrame {
 
 		c.gridx = 0; c.gridy = row; form.add(new JLabel("Tài khoản gởi:"), c);
 		c.gridx = 1; c.gridy = row; form.add(tfAccount, c);
-		JButton btnConnect = new JButton("Kết nối");
-		c.gridx = 2; c.gridy = row; form.add(btnConnect, c);
+		JButton btnLogin = new JButton("Đăng nhập");
+		JButton btnRegister = new JButton("Đăng ký");
+		c.gridx = 2; c.gridy = row; form.add(btnLogin, c);
+		c.gridx = 3; c.gridy = row; form.add(btnRegister, c);
 		row++;
 
 		c.gridx = 0; c.gridy = row; form.add(new JLabel("Mật khẩu:"), c);
@@ -90,7 +92,8 @@ public class BankClientGUI extends JFrame {
 		add(form, BorderLayout.NORTH);
 		add(new JScrollPane(taLog), BorderLayout.CENTER);
 
-		btnConnect.addActionListener(e -> connectAndRegister());
+		btnLogin.addActionListener(e -> handleLogin());
+		btnRegister.addActionListener(e -> handleRegister());
 		btnInquiry.addActionListener(e -> {
 			try {
 				String acc = requireAccount();
@@ -135,28 +138,56 @@ public class BankClientGUI extends JFrame {
 		});
 	}
 
-	private void connectAndRegister() {
+	private void connectToServer() throws Exception {
+		if (service == null) {
+			String serverAddress = tfServerAddress.getText().trim();
+			if (serverAddress.isEmpty()) {
+				serverAddress = "localhost";
+			}
+			Registry registry = LocateRegistry.getRegistry(serverAddress, 1099);
+			service = (BankService) registry.lookup("BankService");
+			taLog.append("Đã kết nối đến server: " + serverAddress + "\n");
+		}
+		if (callback == null) {
+			callback = new ClientCallbackImpl(taLog);
+		}
+	}
+
+	private void handleLogin() {
 		try {
-			if (service == null) {
-				String serverAddress = tfServerAddress.getText().trim();
-				if (serverAddress.isEmpty()) {
-					serverAddress = "localhost";
-				}
-				Registry registry = LocateRegistry.getRegistry(serverAddress, 1099);
-				service = (BankService) registry.lookup("BankService");
-				taLog.append("Đã kết nối đến server: " + serverAddress + "\n");
-			}
-			if (callback == null) {
-				callback = new ClientCallbackImpl(taLog);
-			}
+			connectToServer();
 			String acc = requireAccount();
 			String pw = new String(pfPassword.getPassword());
+			if (pw.isEmpty()) {
+				throw new IllegalArgumentException("Nhập mật khẩu");
+			}
 			if (!service.login(acc, pw)) {
 				throw new IllegalArgumentException("Sai tài khoản hoặc mật khẩu");
 			}
 			loggedIn = true;
 			service.registerCallback(acc, callback);
 			taLog.append("Đăng nhập thành công và đăng ký nhận thông báo cho tài khoản " + acc + "\n");
+		} catch (Exception e) {
+			showError(e);
+		}
+	}
+
+	private void handleRegister() {
+		try {
+			connectToServer();
+			String acc = requireAccount();
+			String pw = new String(pfPassword.getPassword());
+			if (pw.isEmpty()) {
+				throw new IllegalArgumentException("Nhập mật khẩu");
+			}
+			if (!service.registerAccount(acc, pw)) {
+				throw new IllegalArgumentException("Tài khoản đã tồn tại");
+			}
+			taLog.append("Đăng ký tài khoản " + acc + " thành công\n");
+			// Tự động đăng nhập sau khi đăng ký
+			loggedIn = true;
+			service.registerCallback(acc, callback);
+			taLog.append("Đã tự động đăng nhập và đăng ký nhận thông báo cho tài khoản " + acc + "\n");
 		} catch (Exception e) {
 			showError(e);
 		}
