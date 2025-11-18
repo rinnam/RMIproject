@@ -28,7 +28,6 @@ public class BankClientGUI extends JFrame {
 	private final JTextArea taLog;
 	private BankService service;
 	private ClientCallbackImpl callback;
-	private boolean loggedIn = false;
 
 	public BankClientGUI() {
 		super("eBanking RMI");
@@ -164,7 +163,6 @@ public class BankClientGUI extends JFrame {
 			if (!service.login(acc, pw)) {
 				throw new IllegalArgumentException("Sai tài khoản hoặc mật khẩu");
 			}
-			loggedIn = true;
 			service.registerCallback(acc, callback);
 			taLog.append("Đăng nhập thành công và đăng ký nhận thông báo cho tài khoản " + acc + "\n");
 		} catch (Exception e) {
@@ -185,7 +183,6 @@ public class BankClientGUI extends JFrame {
 			}
 			taLog.append("Đăng ký tài khoản " + acc + " thành công\n");
 			// Tự động đăng nhập sau khi đăng ký
-			loggedIn = true;
 			service.registerCallback(acc, callback);
 			taLog.append("Đã tự động đăng nhập và đăng ký nhận thông báo cho tài khoản " + acc + "\n");
 		} catch (Exception e) {
@@ -206,7 +203,23 @@ public class BankClientGUI extends JFrame {
 	}
 
 	private void showError(Exception ex) {
-		JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+		JOptionPane.showMessageDialog(this, extractInnermostMessage(ex), "Lỗi", JOptionPane.ERROR_MESSAGE);
+	}
+
+	private String extractInnermostMessage(Throwable ex) {
+		String message = null;
+		Throwable current = ex;
+		while (current != null) {
+			String candidate = current.getMessage();
+			if (candidate != null && !candidate.isBlank()) {
+				message = candidate;
+			}
+			current = current.getCause();
+		}
+		if (message == null || message.isBlank()) {
+			message = ex.toString();
+		}
+		return message;
 	}
 }
 
