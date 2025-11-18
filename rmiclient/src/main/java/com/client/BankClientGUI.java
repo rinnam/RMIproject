@@ -19,6 +19,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
 public class BankClientGUI extends JFrame {
+	private final JTextField tfServerAddress;
 	private final JTextField tfAccount;
 	private final JPasswordField pfPassword;
 	private final JTextField tfToAccount;
@@ -32,7 +33,7 @@ public class BankClientGUI extends JFrame {
 	public BankClientGUI() {
 		super("eBanking RMI");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setSize(520, 420);
+		setSize(520, 460);
 
 		tfAccount = new JTextField(12);
 		pfPassword = new JPasswordField(12);
@@ -42,11 +43,17 @@ public class BankClientGUI extends JFrame {
 		taLog = new JTextArea();
 		taLog.setEditable(false);
 
+		tfServerAddress = new JTextField("localhost", 12);
+
 		JPanel form = new JPanel(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
 		c.insets = new Insets(4, 4, 4, 4);
 		c.anchor = GridBagConstraints.WEST;
 		int row = 0;
+
+		c.gridx = 0; c.gridy = row; form.add(new JLabel("Địa chỉ Server:"), c);
+		c.gridx = 1; c.gridy = row; form.add(tfServerAddress, c);
+		row++;
 
 		c.gridx = 0; c.gridy = row; form.add(new JLabel("Tài khoản gởi:"), c);
 		c.gridx = 1; c.gridy = row; form.add(tfAccount, c);
@@ -131,8 +138,13 @@ public class BankClientGUI extends JFrame {
 	private void connectAndRegister() {
 		try {
 			if (service == null) {
-				Registry registry = LocateRegistry.getRegistry("localhost", 1099);
+				String serverAddress = tfServerAddress.getText().trim();
+				if (serverAddress.isEmpty()) {
+					serverAddress = "localhost";
+				}
+				Registry registry = LocateRegistry.getRegistry(serverAddress, 1099);
 				service = (BankService) registry.lookup("BankService");
+				taLog.append("Đã kết nối đến server: " + serverAddress + "\n");
 			}
 			if (callback == null) {
 				callback = new ClientCallbackImpl(taLog);
